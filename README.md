@@ -3,7 +3,11 @@ A meta-implementation of the [CIDOC Conceptual Reference Model](http://cidoc-crm
 
 This package implements the CRM by dynamically creating model classes from the CRM RDF specification. This limits code maintenance, and makes it easy to switch among versions of the model (although migration is not yet addressed). There's actually no obvious reason why this couldn't be used with any semantic model expressed in RDF/XML, I just haven't tried it yet. Perhaps you will?
 
-I included a subclass of [neomodel.core.StructuredNode](http://neomodel.readthedocs.io/en/latest/module_documentation.html#neomodel.core.StructuredNode) that implements a method called ``downcast``, which re-instantiates a node instances using the most derivative class, or a target class that is a child of the node's current class. Combined with the fact that neomodel applies all tags in a class hierarchy to node instances and uses those labels to enforce relationship definitions, the result is a full implementation of heritable relationships (CRM properties).
+I included a subclass of [neomodel.core.StructuredNode](http://neomodel.readthedocs.io/en/latest/module_documentation.html#neomodel.core.StructuredNode) that implements a method called ``downcast``, which re-instantiates a node instances using the most derivative class, or a target class that is a child of the node's current class. Combined with the fact that neomodel applies all tags in a class hierarchy to node instances and uses those labels to enforce relationship definitions, the result is a full implementation of heritable relationships (CRM properties). Oh, and now there's ``upcast``, too. See below.
+
+## Questions?
+
+Write me at erick.peirson@asu.edu, or [file an issue](https://github.com/diging/cidoc-crm-neo4j/issues).
 
 ## Loading the models
 
