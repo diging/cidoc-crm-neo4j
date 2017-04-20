@@ -1,8 +1,8 @@
 """
 Dynamic implementation of the CRM.
 
-On import, will run :func:`.build_model` to populate the namespace with
-non-abstract hierarchial subclasses of  :class:`.HeritableStructuredNode`\.
+Use :func:`.build_model` to populate the namespace with non-abstract hierarchial
+subclasses of  :class:`.HeritableStructuredNode`\.
 
 Example
 -------
@@ -105,7 +105,23 @@ class HeritableStructuredNode(StructuredNode):
         return instance
 
 
-def get_or_create_rel_class(identifier, entry, classdata, propdata, sources):
+def get_or_create_rel_class(identifier, entry):
+    """
+    Get a property (relation) class from the current namespace, or construct
+    and register one.
+
+    Parameters
+    ----------
+    identifier : str
+        Unique name of the class.
+    entry : dict
+        Metadata for the class. Expects (but does not require) keys ``comment``,
+        ``label``, ``code``, and ``safe_name``.
+
+    Returns
+    -------
+    :class:`type`
+    """
     _globs = globals()
     if identifier in _globs:
         return _globs[identifier]
@@ -121,13 +137,38 @@ def get_or_create_rel_class(identifier, entry, classdata, propdata, sources):
 
 
 def get_or_create_class(identifier, entry, classdata, propdata, sources):
+    """
+    Get a class from the current namspace, or create and register one.
+
+    Parameters
+    ----------
+    identifier : str
+        Unique name of the class.
+    entry : dict
+        Metadata for the class. Expects (but does not require) keys ``comment``,
+        ``label``, ``code``, and ``safe_name``.
+    classdata : dict
+        All raw metadata for the classes in this schema, keyed on identifier.
+    propdata : dict
+        All raw metadata for the properties (relations) in this schema, keyed
+        on identifier.
+    sources : dict
+        Hashtable containing (values) a list of property identifiers that
+        belong to each class identifier (keys).
+
+    Returns
+    -------
+    :class:`type`
+    """
     _globs = globals()
     if identifier in _globs:
         return _globs[identifier]
 
     if entry.get('subClassOf'):
         super_identifiers = entry.get('subClassOf')
-        superClasses = tuple([get_or_create_class(ident, classdata[ident], classdata, propdata, sources) for ident in super_identifiers])
+        superClasses = tuple([get_or_create_class(ident, classdata[ident],
+                                                  classdata, propdata, sources)
+                              for ident in super_identifiers])
     else:
         superClasses = (HeritableStructuredNode,)
 
@@ -143,8 +184,8 @@ def get_or_create_class(identifier, entry, classdata, propdata, sources):
     for ident in property_identifiers:
         prop = propdata.get(ident)
         target_identifier = prop.get('range')
-        rel = RelationshipTo(target_identifier, ident,
-                             model=get_or_create_rel_class(ident, prop, classdata, propdata, sources))
+        target_class = get_or_create_rel_class(ident, prop)
+        rel = RelationshipTo(target_identifier, ident, model=target_class)
         params[prop.get('safe_name')] = rel
 
     _globs[identifier] = type(str(identifier), superClasses, params)
@@ -154,6 +195,12 @@ def get_or_create_class(identifier, entry, classdata, propdata, sources):
 def build_model(schema_url):
     """
     Populate the current namespace with the CRM.
+
+    Parameters
+    ---------
+    schema_url : str
+        This gets passed on to :meth:`rdflib.Graph.parse`\. So anything valid
+        as a source for that method will suffice.
     """
     classdata, propdata = import_schema(schema_url)
 
@@ -164,4 +211,4 @@ def build_model(schema_url):
     for ident, entry in classdata.items():
         get_or_create_class(ident, entry, classdata, propdata, sources)
     for ident, entry in propdata.items():
-        get_or_create_rel_class(ident, entry, classdata, propdata, sources)
+        get_or_create_rel_class(ident, entry)

@@ -76,10 +76,31 @@ def _identifier(uri_ref):
     else:
         delim = '/'
     ident_parts = unicode(uri_ref).split(delim)[-1].split('_')
-    return ' '.join(ident_parts).title().replace(' ', ''), '_'.join(ident_parts).replace('-', '_'), ident_parts[0]
+    # Can you think of a hackier way to do this? I can't.
+    return ' '.join(ident_parts).title().replace(' ', ''), '_'.join(ident_parts)\
+            .replace('-', '_'), ident_parts[0]
 
 
 def import_schema(schema_url):
+    """
+    (Down)load, parse, and deconstruct an RDF/XML schema.
+
+    Parameters
+    ---------
+    schema_url : str
+        This gets passed on to :meth:`rdflib.Graph.parse`\. So anything valid
+        as a source for that method will suffice.
+
+    Returns
+    -------
+    :class:`dict`
+        Keys are identifiers, values class descriptions.
+    :class:`dict`
+        Keys are identifiers, values are property (relation) descriptions.
+    """
+
+    # TODO: this was ported from another project; it can probably be refactored
+    #  or at least tidied for clarity.
     g = rdflib.Graph()
     # Load RDF from remote location.
     try:
