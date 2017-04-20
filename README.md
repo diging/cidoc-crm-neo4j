@@ -13,7 +13,7 @@ Write me at erick.peirson@asu.edu, or [file an issue](https://github.com/diging/
 
 If you need to specify database configuration, you should do that **before** importing from this package.
 
-```
+```python
 >>> from neomodel import config
 >>> config.DATABASE_URL = 'bolt://neo4j:neo4j@localhost:7687'
 >>> schema_location = 'http://..../path/to/schema.rdfs.xml'
@@ -28,7 +28,7 @@ parameter in [``rdflib.Graph.parse``](https://rdflib.readthedocs.io/en/stable/ap
 
 The ``models`` namespace should now be populated with CRM class and property instances.
 
-```
+```python
 >>> joe = model.E21Person(value='Joe Bloggs')
 >>> joe.save()
 <E21Person: {'id': 33, 'value': 'Joe Bloggs'}>
@@ -45,7 +45,7 @@ The ``models`` namespace should now be populated with CRM class and property ins
 
 neomodel already allows sub-classes to inherit the powers of their superiors, so for example:
 
-```
+```python
 >>> class SomeModel(StructuredNode):
 ...     likes = RelationshipTo('AnotherModel')
 ...
@@ -67,7 +67,7 @@ neomodel already allows sub-classes to inherit the powers of their superiors, so
 
 So we get property-inheritance in the CRM for free. For example, even though ``P2 has type`` is a property of ``E1 CRM Entity``, we can use it on a ``E21 Person`` (who inherits from ``E1``):
 
-```
+```python
 >>> joe = models.E21Person(value='Joe Bloggs')
 >>> joe.save()
 >>> joe.P2_has_type.connect(a_type_object)
@@ -76,7 +76,7 @@ So we get property-inheritance in the CRM for free. For example, even though ``P
 
 We are also prevented from doing things that are prevented by the CRM:
 
-```
+```python
 >>> jane = models.E21Person(value='Jane Doe')
 >>> jane.save()
 >>> joe.P74_has_current_or_former_residence.connect(jane)
@@ -87,7 +87,7 @@ ValueError: Expected node of class E53Place
 
 The one problem that neomodel doesn't solve for us is how we get those child classes back out again when we're using properties (relations) that belong to higher-level classes. For example, suppose I'm modeling participants in an event of some kind:
 
-```
+```python
 >>> event = models.E5Event(value='Some cool happening')
 >>> event.save()
 >>> event.P11_had_participant.connect(joe)
@@ -96,7 +96,7 @@ The one problem that neomodel doesn't solve for us is how we get those child cla
 
 So great, no complaints. But [``P11 had participant``](http://cidoc-crm.org/Property/P11-had-participant/Version-6.2) targets [``E39 Actor``](http://cidoc-crm.org/Property/P11-had-participant/Version-6.2); since our Joe an [``E21 Person``](http://cidoc-crm.org/Entity/E21-Person/Version-6.2) is also an ``E39 Actor`` our relation is valid, but when we go to retrieve targets of that relation we won't know that Joe was originally instantiated as ``E21 Person`` (the more derivative class).
 
-```
+```python
 >>> for target in event.P11_had_participant.all():
 ...     print target, type(target)
 {'id': 39, 'value': u'Joe Bloggs'} <class 'neomodel.core.E39Actor'>
@@ -104,7 +104,7 @@ So great, no complaints. But [``P11 had participant``](http://cidoc-crm.org/Prop
 
 Since all models in this package subclass ``HeritableStructuredNode``, they have a method called ``downcast()`` that solves this problem. For example:
 
-```
+```python
 >>> for target in event.P11_had_participant.all():
 ...     original_target = target.downcast()
 ...     print original_target, type(original_target)
@@ -113,7 +113,7 @@ Since all models in this package subclass ``HeritableStructuredNode``, they have
 
 We can also ``downcast()`` to a specific derivative class, and/or ``upcast()`` to a specific super-class:
 
-```
+```python
 >>> actor = event.P11_had_participant.single()
 >>> actor
 <E39Actor: {'id': 54, 'value': u'Joe Bloggs'}>
@@ -125,7 +125,7 @@ We can also ``downcast()`` to a specific derivative class, and/or ``upcast()`` t
 
 But we run into trouble (as we should) if we try to do things that violate the CRM:
 
-```
+```python
 >>> actor.downcast('E21Person').upcast('E18PhysicalThing').downcast('E28ConceptualObject')
 ValueError: E28ConceptualObject is not a sub-class of E18PhysicalThing
 
