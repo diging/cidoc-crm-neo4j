@@ -77,8 +77,8 @@ def _identifier(uri_ref):
         delim = '/'
     ident_parts = unicode(uri_ref).split(delim)[-1].split('_')
     # Can you think of a hackier way to do this? I can't.
-    return ' '.join(ident_parts).title().replace(' ', ''), '_'.join(ident_parts)\
-            .replace('-', '_'), ident_parts[0]
+    return ' '.join(ident_parts).title().replace(' ', '').replace('-', ''), \
+            '_'.join(ident_parts).replace('-', '_'), ident_parts[0]
 
 
 def import_schema(schema_url):

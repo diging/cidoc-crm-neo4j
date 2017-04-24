@@ -40,6 +40,26 @@ class HeritableStructuredNode(StructuredNode):
     """
     __abstract_node__ = True
 
+    def primary_label(self):
+        _get_class = lambda cname: getattr(sys.modules[__name__], cname)
+        # inherited_labels() only returns the labels for the current class and
+        #  any super-classes, whereas labels() will return all labels on the
+        #  node.
+        classes = list(set(self.labels()) - set(self.inherited_labels()))
+        if len(classes) == 0:          # The most derivative class is already
+            return self.__class__.__name__       #  instantiated.
+        elif len(classes) == 1:    # Only one option, so this must be it.
+            return classes[0]
+        else:    # Infer the most derivative class by looking for the one
+                 #  with the longest method resolution order.
+            class_objs = map(_get_class, classes)
+            _, cls = sorted(zip(map(lambda cls: len(cls.mro()),
+                                    class_objs),
+                                class_objs),
+                            key=lambda (size, cls): size)[-1]
+            return cls.__name__
+
+
     def upcast(self, target_class):
         """
         Re-instantiate this node as an instance of a more abstract class.
@@ -128,12 +148,14 @@ def get_or_create_rel_class(identifier, entry):
 
     params = {
         '__doc__': entry.get('comment', ""),
+        'description': entry.get('comment', ""),
         'display_label': entry.get('label', identifier),
         'code': entry.get('code'),
         'value': StringProperty(),
         'safe_name': entry.get('safe_name')
     }
-    return type(str(identifier), (StructuredRel,), params)
+    _globs[identifier] = type(str(identifier), (StructuredRel,), params)
+    return _globs[identifier]
 
 
 def get_or_create_class(identifier, entry, classdata, propdata, sources):
@@ -174,8 +196,9 @@ def get_or_create_class(identifier, entry, classdata, propdata, sources):
 
     params = {
         '__doc__': entry.get('comment', ""),
+        'description': entry.get('comment', ""),
         'display_label': entry.get('label'),
-        'value': StringProperty(),
+        'value': StringProperty(index=True),
         'code': entry.get('code'),
         'safe_name': entry.get('safe_name')
     }
