@@ -18,7 +18,7 @@ If you need to specify database configuration, you should do that **before** imp
 >>> config.DATABASE_URL = 'bolt://neo4j:neo4j@localhost:7687'
 >>> schema_location = 'http://..../path/to/schema.rdfs.xml'
 >>> from crm import models    # The correct way!
->>> models.import_schema(schema_location)    # Download and implement.
+>>> models.build_models(schema_location)    # Download and implement.
 ```
 
 This might take a few moments, since the package will download and parse the RDF specification for CRM at this point. This is fine for the intended use-cases of this package, e.g. loading models once at application start. You can reduce the overhead of this procedure by storing a copy of the RDF in a more proximate location.
@@ -131,4 +131,23 @@ ValueError: E28ConceptualObject is not a sub-class of E18PhysicalThing
 
 >>> actor.upcast('E7Activity')
 ValueError: E7Activity is not a super-class of E39Actor
+```
+
+## Specify fields for nodes and relations
+
+You can specify fields for nodes and relations by passing ``fields`` and/or ``rel_fields`` to ``build_models()``. These should be ``dict``s; keys should be valid property names, and values should be callable objects that return
+``neomodel.properties.Property`` instances. For example:
+
+```python
+>>> node_fields = {
+...     'bob': neomodel.StringProperty,
+...     'foo': lambda: neomodel.StringProperty(index=True)
+... }
+>>> build_models(schema_location, fields=node_fields)
+>>> models.E1CrmEntity(bob='dole', foo='bar').save()
+<E1CrmEntity: {'bob': 'dole', 'foo': 'bar', 'id': 11}>
+>>> theNode = models.E1CrmEntity(id=11)
+>>> theNode.refresh()
+>>> theNode.bob, theNode.foo
+(u'dole', u'bar')
 ```

@@ -26,14 +26,15 @@ Example
 
 """
 
-from neomodel import StructuredNode, StringProperty, RelationshipTo, StructuredRel
+
+import neomodel
 import sys
 from collections import defaultdict
 
 from crm.load import import_schema
 
 
-class HeritableStructuredNode(StructuredNode):
+class HeritableStructuredNode(neomodel.StructuredNode):
     """
     Extends :class:`neomodel.StructuredNode` to provide the :meth:`.downcast`
     method.
@@ -125,7 +126,7 @@ class HeritableStructuredNode(StructuredNode):
         return instance
 
 
-def get_or_create_rel_class(identifier, entry):
+def get_or_create_rel_class(identifier, entry, fields={}):
     """
     Get a property (relation) class from the current namespace, or construct
     and register one.
@@ -137,6 +138,10 @@ def get_or_create_rel_class(identifier, entry):
     entry : dict
         Metadata for the class. Expects (but does not require) keys ``comment``,
         ``label``, ``code``, and ``safe_name``.
+    fields : dict
+        (optional) Specify extra fields to add to the class specification.
+        Keys should be valid property names, and values should be callables
+        that return :class:`neomodel.properties.Property` instances.
 
     Returns
     -------
@@ -151,14 +156,22 @@ def get_or_create_rel_class(identifier, entry):
         'description': entry.get('comment', ""),
         'display_label': entry.get('label', identifier),
         'code': entry.get('code'),
-        'value': StringProperty(),
         'safe_name': entry.get('safe_name')
     }
-    _globs[identifier] = type(str(identifier), (StructuredRel,), params)
+    for key, val in fields.items():
+        # TODO: ensure that ``key`` is a valid property name.
+        if hasattr(val, '__call__') and key not in params:
+            val = val()
+            if not isinstance(val, neomodel.properties.Property):
+                continue
+            params[key] = val
+
+    _globs[identifier] = type(str(identifier), (neomodel.StructuredRel,), params)
     return _globs[identifier]
 
 
-def get_or_create_class(identifier, entry, classdata, propdata, sources):
+def get_or_create_class(identifier, entry, classdata, propdata, sources,
+                        fields={}, rel_fields={}):
     """
     Get a class from the current namspace, or create and register one.
 
@@ -177,6 +190,15 @@ def get_or_create_class(identifier, entry, classdata, propdata, sources):
     sources : dict
         Hashtable containing (values) a list of property identifiers that
         belong to each class identifier (keys).
+    fields : dict
+        (optional) Specify extra fields to add to the class specification.
+        Keys should be valid property names, and values should be callables
+        that return :class:`neomodel.properties.Property` instances.
+    rel_fields : dict
+        (optional) Specify extra fields to add to linked relation class
+        specifications. Keys should be valid property names, and values should
+        be callables that return :class:`neomodel.properties.Property`
+        instances.
 
     Returns
     -------
@@ -189,7 +211,9 @@ def get_or_create_class(identifier, entry, classdata, propdata, sources):
     if entry.get('subClassOf'):
         super_identifiers = entry.get('subClassOf')
         superClasses = tuple([get_or_create_class(ident, classdata[ident],
-                                                  classdata, propdata, sources)
+                                                  classdata, propdata, sources,
+                                                  fields=fields,
+                                                  rel_fields=rel_fields)
                               for ident in super_identifiers])
     else:
         superClasses = (HeritableStructuredNode,)
@@ -198,24 +222,31 @@ def get_or_create_class(identifier, entry, classdata, propdata, sources):
         '__doc__': entry.get('comment', ""),
         'description': entry.get('comment', ""),
         'display_label': entry.get('label'),
-        'value': StringProperty(index=True),
         'code': entry.get('code'),
         'safe_name': entry.get('safe_name')
     }
+    for key, val in fields.items():
+        # TODO: ensure that ``key`` is a valid property name.
+        if hasattr(val, '__call__') and key not in params:
+            val = val()
+            if not isinstance(val, neomodel.properties.Property):
+                continue
+            params[key] = val
 
     property_identifiers = sources.get(identifier, [])
     for ident in property_identifiers:
         prop = propdata.get(ident)
         target_identifier = prop.get('range')
-        target_class = get_or_create_rel_class(ident, prop)
-        rel = RelationshipTo(target_identifier, ident, model=target_class)
+        target_class = get_or_create_rel_class(ident, prop, fields=rel_fields)
+        rel = neomodel.RelationshipTo(target_identifier, ident,
+                                      model=target_class)
         params[prop.get('safe_name')] = rel
 
     _globs[identifier] = type(str(identifier), superClasses, params)
     return _globs[identifier]
 
 
-def build_model(schema_url):
+def build_models(schema_url, fields={}, rel_fields={}):
     """
     Populate the current namespace with the CRM.
 
@@ -224,6 +255,15 @@ def build_model(schema_url):
     schema_url : str
         This gets passed on to :meth:`rdflib.Graph.parse`\. So anything valid
         as a source for that method will suffice.
+    fields : dict
+        (optional) Specify extra fields to add to class specifications.
+        Keys should be valid property names, and values should be callables
+        that return :class:`neomodel.properties.Property` instances.
+    rel_fields : dict
+        (optional) Specify extra fields to add to relation class
+        specifications. Keys should be valid property names, and values should
+        be callables that return :class:`neomodel.properties.Property`
+        instances.
     """
     classdata, propdata = import_schema(schema_url)
 
@@ -232,6 +272,7 @@ def build_model(schema_url):
         sources[entry.get('domain')].append(prop)
 
     for ident, entry in classdata.items():
-        get_or_create_class(ident, entry, classdata, propdata, sources)
+        get_or_create_class(ident, entry, classdata, propdata, sources,
+                            fields=fields, rel_fields=rel_fields)
     for ident, entry in propdata.items():
-        get_or_create_rel_class(ident, entry)
+        get_or_create_rel_class(ident, entry, fields=rel_fields)
