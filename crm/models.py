@@ -12,7 +12,7 @@ Example
    >>> from neomodel import config
    >>> config.DATABASE_URL = 'bolt://neo4j:neo4j@localhost:7687'
    >>> from crm import models
-   >>> models.build_model("http://.....path/to/schema.rdfs.xml")
+   >>> models.build_models("http://.....path/to/schema.rdfs.xml")
    >>> joe = model.E21Person(value='Joe Bloggs')
    >>> joe.save()
    <E21Person: {'id': 33, 'value': 'Joe Bloggs'}>
@@ -156,8 +156,10 @@ def get_or_create_rel_class(identifier, entry, fields={}):
         'description': entry.get('comment', ""),
         'display_label': entry.get('label', identifier),
         'code': entry.get('code'),
-        'safe_name': entry.get('safe_name')
+        'safe_name': entry.get('safe_name'),
+        'range': entry.get('range')
     }
+
     for key, val in fields.items():
         # TODO: ensure that ``key`` is a valid property name.
         if hasattr(val, '__call__') and key not in params:
