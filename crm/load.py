@@ -75,7 +75,7 @@ def _identifier(uri_ref):
         delim = '#'
     else:
         delim = '/'
-    ident_parts = unicode(uri_ref).split(delim)[-1].split('_')
+    ident_parts = uri_ref.split(delim)[-1].split('_')
     # Can you think of a hackier way to do this? I can't.
     return ' '.join(ident_parts).title().replace(' ', '').replace('-', ''), \
             '_'.join(ident_parts).replace('-', '_'), ident_parts[0]
