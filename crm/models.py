@@ -57,7 +57,7 @@ class HeritableStructuredNode(neomodel.StructuredNode):
             _, cls = sorted(zip(map(lambda cls: len(cls.mro()),
                                     class_objs),
                                 class_objs),
-                            key=lambda (size, cls): size)[-1]
+                            key=lambda size, cls: size)[-1]
             return cls.__name__
 
 
@@ -107,7 +107,7 @@ class HeritableStructuredNode(neomodel.StructuredNode):
                 _, cls = sorted(zip(map(lambda cls: len(cls.mro()),
                                         class_objs),
                                     class_objs),
-                                key=lambda (size, cls): size)[-1]
+                                key=lambda size, cls: size)[-1]
         else:    # Caller has specified a target class.
             if not isinstance(target_class, basestring):
                 # In the spirit of neomodel, we might as well support both

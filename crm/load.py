@@ -75,10 +75,10 @@ def _identifier(uri_ref):
         delim = '#'
     else:
         delim = '/'
-    ident_parts = unicode(uri_ref).split(delim)[-1].split('_')
+    ident_parts = str(uri_ref).split(delim)[-1].split('_')
     # Can you think of a hackier way to do this? I can't.
     return ' '.join(ident_parts).title().replace(' ', '').replace('-', ''), \
-            '_'.join(ident_parts).replace('-', '_'), ident_parts[0]
+        '_'.join(ident_parts).replace('-', '_'), ident_parts[0]
 
 
 def import_schema(schema_url):
@@ -127,7 +127,7 @@ def import_schema(schema_url):
     # Build RDFClasses first, so that we can use them in the domain and range
     #  of RDFProperty instances.
     for class_ref in classes:
-        identifier, safe_name, code  = _identifier(class_ref)
+        identifier, safe_name, code = _identifier(class_ref)
 
         # We prefer to use the description, but comment is fine, too.
         comment = _get_object(g, class_ref, DESCRIPTION)
